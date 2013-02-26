@@ -246,6 +246,9 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
             String path = file.getAbsolutePath();
             if (path.startsWith(_sourceDir)) {
               path = path.substring(_sourceDir.length());
+              if (path.startsWith("/") || path.startsWith("\\")) {
+                path = path.substring(1);
+              }
             }
             if (_excludes != null) {
               final String[] excludes = _excludes.split("[;]");
