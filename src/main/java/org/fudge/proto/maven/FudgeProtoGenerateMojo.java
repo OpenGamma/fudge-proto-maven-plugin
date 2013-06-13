@@ -30,87 +30,93 @@ import org.fudgemsg.proto.CommandLine;
  * Maven plugin for running Fudge-Proto.
  * 
  * @goal generate
- * @phase generate-sources
+ * @phase process-sources
+ * @description Goal that generates Fudge-Proto classes from proto files
  * 
  * @author Stephen Colebourne
  */
 public class FudgeProtoGenerateMojo extends AbstractMojo {
 
   /**
-   * @parameter alias="sourceDir" expression="${project.build.sourceDirectory}"
+   * @parameter alias="sourceDir" property="project.build.sourceDirectory"
    * @required
    * @readonly
    */
   private String _sourceDir;
   /**
+   * Skips the fudge Proto generation.
+   * @parameter alias="skip" property="fudge.proto.skip"
+   */
+  private boolean _skip;
+  /**
    * The files to exclude, separated by semicolon, may include star wildcard.
-   * @parameter alias="excludes" expression="${fudge.proto.excludes}"
+   * @parameter alias="excludes" property="fudge.proto.excludes"
    */
   private String _excludes;
   /**
    * The search directories, separated by semicolon, for finding proto files.
-   * @parameter alias="searchDir" expression="${fudge.proto.searchDir}"
+   * @parameter alias="searchDir" property="fudge.proto.searchDir"
    */
   private String _searchDir;
   /**
    * True for verbose/debugging output, defaults to false.
-   * @parameter alias="verbose" expression="${fudge.proto.verbose}"
+   * @parameter alias="verbose" property="fudge.proto.verbose"
    */
   private boolean _verbose;
   /**
    * True to list all files processed, defaults to false.
-   * @parameter alias="listFiles" expression="${fudge.proto.listFiles}"
+   * @parameter alias="listFiles" property="fudge.proto.listFiles"
    */
   private boolean _listFiles;
   /**
    * True to build all files ignoring timestamps.
-   * @parameter alias="rebuildAll" expression="${fudge.proto.rebuildAll}"
+   * @parameter alias="rebuildAll" property="fudge.proto.rebuildAll"
    */
   private boolean _rebuildAll;
   /**
    * True to write a gitignore file for generated files, defaults to false.
-   * @parameter alias="gitIgnore" expression="${fudge.proto.gitIgnore}"
+   * @parameter alias="gitIgnore" property="fudge.proto.gitIgnore"
    */
   private boolean _gitIgnore;
 
   /**
    * True to generate equals methods in output, defaults to true.
-   * @parameter alias="equals" expression="${fudge.proto.equals}"
+   * @parameter alias="equals" property="fudge.proto.equals"
    */
   private boolean _equals = true;
   /**
    * True to generate hashCode methods in output, defaults to true.
-   * @parameter alias="hashCode" expression="${fudge.proto.hashCode}"
+   * @parameter alias="hashCode" property="fudge.proto.hashCode"
    */
   private boolean _hashCode = true;
   /**
    * True to generate toString methods in output, defaults to true.
-   * @parameter alias="toString" expression="${fudge.proto.toString}"
+   * @parameter alias="toString" property="fudge.proto.toString"
    */
   private boolean _toString = true;
   /**
    * Expression to use in place of a parameterized context (e.g. FudgeContext.GLOBAL_DEFAULT).
-   * @parameter alias="fudgeContext" expression="${fudge.proto.fudgeContext}"
+   * @parameter alias="fudgeContext" property="fudge.proto.fudgeContext"
    */
   private String _fudgeContext;
   /**
    * True if fields are mutable by default, false otherwise.
-   * @parameter alias="fieldsMutable" expression="${fudge.proto.fieldsMutable}"
+   * @parameter alias="fieldsMutable" property="fudge.proto.fieldsMutable"
    */
   private Boolean _fieldsMutable;
   /**
    * True if fields are required by default, false otherwise.
-   * @parameter alias="fieldsRequired" expression="${fudge.proto.fieldsRequired}"
+   * @parameter alias="fieldsRequired" property="fudge.proto.fieldsRequired"
    */
   private Boolean _fieldsRequired;
   /**
    * The file header to add.
-   * @parameter alias="fileHeader" expression="${fudge.proto.fileHeader}"
+   * @parameter alias="fileHeader" property="fudge.proto.fileHeader"
    */
   private String _fileHeader;
   /**
    * The file header to add.
-   * @parameter alias="fileFooter" expression="${fudge.proto.fileFooter}"
+   * @parameter alias="fileFooter" property="fudge.proto.fileFooter"
    */
   private String _fileFooter;
 
@@ -118,6 +124,9 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
    * Executes the Fudge-Proto generator.
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
+    if (_skip) {
+      return;
+    }
     if (_sourceDir == null) {
       throw new MojoExecutionException("Source directory must not be null");
     }
