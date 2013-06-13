@@ -1,6 +1,11 @@
 *.class
 *.log
+.checkstyle
+.classpath
+.project
 /bin/
 /build/
+/dist/
+/lib/
 /target/
 /.settings/
