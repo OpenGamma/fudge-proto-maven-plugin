@@ -17,20 +17,28 @@ package org.fudge.proto.maven;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.tools.ant.DirectoryScanner;
-import org.fudgemsg.proto.CommandLine;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.DirectoryScanner;
 
 /**
  * Maven plugin for running Fudge-Proto.
  * 
  * @goal generate
  * @phase process-sources
+ * @requiresDependencyResolution compile
  * @description Goal that generates Fudge-Proto classes from proto files
  * 
  * @author Stephen Colebourne
@@ -38,6 +46,7 @@ import org.fudgemsg.proto.CommandLine;
 public class FudgeProtoGenerateMojo extends AbstractMojo {
 
   /**
+   * The source directory.
    * @parameter alias="sourceDir" property="project.build.sourceDirectory"
    * @required
    * @readonly
@@ -121,6 +130,15 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
   private String _fileFooter;
 
   /**
+   * The Maven project.
+   * @parameter default-value="${project}"
+   * @required
+   * @readonly
+   */
+  private MavenProject _project;
+
+  //-------------------------------------------------------------------------
+  /**
    * Executes the Fudge-Proto generator.
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
@@ -130,7 +148,35 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
     if (_sourceDir == null) {
       throw new MojoExecutionException("Source directory must not be null");
     }
-    if (CommandLine.checkPackages() == false) {
+    ClassLoader classLoader = obtainClassLoader();
+    Class<?> commandLineClass = null;
+    try {
+      commandLineClass = classLoader.loadClass("org.fudgemsg.proto.CommandLine");
+    } catch (Exception ex) {
+      getLog().info("Skipping as fudge-proto is not in the project compile classpath");
+      return;
+    }
+    Method commandLineCheckPackages = null;
+    try {
+      commandLineCheckPackages = commandLineClass.getMethod("checkPackages");
+    } catch (Exception ex) {
+      throw new MojoExecutionException("Unable to find method CommandLine.checkPackages()");
+    }
+    Method commandLineCompile = null;
+    try {
+      commandLineCompile = commandLineClass.getMethod("compile", String[].class);
+    } catch (Exception ex) {
+      throw new MojoExecutionException("Unable to find method CommandLine.compile(String[])");
+    }
+    
+    // check packages are available to Fudge Proto
+    Boolean check;
+    try {
+      check = (Boolean) commandLineCheckPackages.invoke(null);
+    } catch (Exception ex1) {
+      throw new MojoExecutionException("Error invoking CommandLine.checkPackages()");
+    }
+    if (check == false) {
       throw new MojoExecutionException("Invalid classpath");
     }
     
@@ -216,11 +262,12 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
       }
       System.out.println();
     }
-
+    
     // run generator
     getLog().info("Fudge-Proto generator started, directory: " + _sourceDir);
     try {
-      if (CommandLine.compile(args.toArray(new String[args.size()])) > 0) {
+      Integer result = (Integer) commandLineCompile.invoke(null, new Object[] {args.toArray(new String[args.size()])});
+      if (result > 0) {
         throw new MojoFailureException("Compilation failed");
       }
     } catch (MojoFailureException ex) {
@@ -285,6 +332,43 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
       }
     }
     return count;
+  }
+
+  /**
+   * Obtains the classloader from a set of file paths.
+   * 
+   * @return the classloader, not null
+   */
+  private URLClassLoader obtainClassLoader() throws MojoExecutionException {
+    List<String> compileClasspath = obtainClasspath();
+    Set<URL> classpathUrls1 = new HashSet<URL>();
+    for (String classpathEntry : compileClasspath) {
+      File f = new File(classpathEntry);
+      if (f.exists()) {
+        try {
+          classpathUrls1.add(f.toURI().toURL());
+        } catch (MalformedURLException ex) {
+          throw new RuntimeException("Error interpreting classpath entry as URL: " + classpathEntry, ex);
+        }
+      }
+    }
+    URL[] classpathUrls = classpathUrls1.toArray(new URL[classpathUrls1.size()]);
+    return new URLClassLoader(classpathUrls, FudgeProtoGenerateMojo.class.getClassLoader());
+  }
+
+  /**
+   * Obtains the resolved classpath of dependencies.
+   * 
+   * @return the classpath, not null
+   * @throws MojoExecutionException
+   */
+  @SuppressWarnings("unchecked")
+  private List<String> obtainClasspath() throws MojoExecutionException {
+    try {
+      return _project.getCompileClasspathElements();
+    } catch (DependencyResolutionRequiredException ex) {
+      throw new MojoExecutionException("Error obtaining dependencies", ex);
+    }
   }
 
 }
