@@ -177,16 +177,21 @@ public class FudgeProtoGenerateMojo extends AbstractMojo {
         args.add("-p" + resolved);
       }
     }
-    if (_equals)
+    if (_equals) {
       args.add("-Xequals");
-    if (_toString)
+    }
+    if (_toString) {
       args.add("-XtoString");
-    if (_hashCode)
+    }
+    if (_hashCode) {
       args.add("-XhashCode");
-    if (_fudgeContext != null)
+    }
+    if (_fudgeContext != null) {
       args.add("-XfudgeContext=" + _fudgeContext);
-    if (_gitIgnore)
+    }
+    if (_gitIgnore) {
       args.add("-XgitIgnore");
+    }
     if (_fileHeader != null) {
       args.add("-XfileHeader=" + _fileHeader);
     }
