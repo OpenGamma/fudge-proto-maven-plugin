@@ -9,7 +9,7 @@
   <artifactId>fudge-proto-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
   <name>Fudge Proto Maven plugin</name>
-  <version>0.3.9.6</version>
+  <version>0.3.9.7-SNAPSHOT</version>
   <description>Fudge Proto plugin for Maven</description>
   <url>https://github.com/FudgeMsg/fudge-proto-maven-plugin</url>
 
